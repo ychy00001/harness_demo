@@ -9,12 +9,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-MODEL_NAME = os.getenv("MODEL_NAME", "MiniMax-M2.5")
-
+MODEL_NAME = os.getenv("MODEL_NAME", "MiniMax-M2.7-highspeed")
+print(MODEL_NAME)
 OPENAI_BASE_URL="https://api.minimaxi.com/v1"
 
 def create_client() -> OpenAI:
-    api_key = os.getenv("OPENAI_AMINIMAX_API_KEYPI_KEY")
+    api_key = os.getenv("MINIMAX_API_KEY")
     if not api_key:
         logger.error("未设置 MINIMAX_API_KEY 环境变量，请先设置后再运行")
         raise SystemExit(1)
@@ -36,10 +36,11 @@ def chat(client: OpenAI, user_input: str) -> str:
             {"role": "user", "content": user_input},
         ],
         temperature=0.7,
+        # 设置 reasoning_split=True 将思考内容分离到 reasoning_details 字段
+        extra_body={"reasoning_split": True},
     )
 
     result = response.choices[0].message.content
-    logger.info("LLM 响应: %s", result)
     return result
 
 

@@ -14,7 +14,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 MAX_RETRY = int(os.getenv("MAX_RETRY", "3"))
-MODEL_NAME = os.getenv("MODEL_NAME", "MiniMax-M2.5")
+MODEL_NAME = os.getenv("MODEL_NAME", "MiniMax-M2.7-highspeed")
 
 OPENAI_BASE_URL="https://api.minimaxi.com/v1"
 STATE_FILE = Path(__file__).parent / "task_state.json"
@@ -169,6 +169,8 @@ def decompose_task(client: OpenAI, task: str) -> list[dict]:
         model=MODEL_NAME,
         messages=[{"role": "user", "content": prompt}],
         temperature=0.3,
+        # 设置 reasoning_split=True 将思考内容分离到 reasoning_details 字段
+        extra_body={"reasoning_split": True},
     )
     content = response.choices[0].message.content.strip()
     logger.info("拆解原始响应: %s", content)
@@ -209,6 +211,8 @@ def execute_subtasks(client: OpenAI, state: dict) -> dict:
             messages=messages,
             tools=TOOLS,
             temperature=0.3,
+            # 设置 reasoning_split=True 将思考内容分离到 reasoning_details 字段
+            extra_body={"reasoning_split": True},
         )
 
         choice = response.choices[0]
@@ -267,6 +271,8 @@ def verify_task(client: OpenAI, state: dict) -> dict:
         model=MODEL_NAME,
         messages=[{"role": "user", "content": prompt}],
         temperature=0.1,
+        # 设置 reasoning_split=True 将思考内容分离到 reasoning_details 字段
+        extra_body={"reasoning_split": True},
     )
     content = response.choices[0].message.content.strip()
     # logger.info("验证原始响应: %s", content)
