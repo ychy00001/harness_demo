@@ -19,7 +19,6 @@ MODEL_NAME = os.getenv("MODEL_NAME", "MiniMax-M2.7-highspeed")
 OPENAI_BASE_URL="https://api.minimaxi.com/v1"
 STATE_FILE = Path(__file__).parent / "task_state.json"
 
-
 def create_client() -> OpenAI:
     api_key = os.getenv("MINIMAX_API_KEY")
     if not api_key:
@@ -169,7 +168,6 @@ def decompose_task(client: OpenAI, task: str) -> list[dict]:
         model=MODEL_NAME,
         messages=[{"role": "user", "content": prompt}],
         temperature=0.3,
-        # 设置 reasoning_split=True 将思考内容分离到 reasoning_details 字段
         extra_body={"reasoning_split": True},
     )
     content = response.choices[0].message.content.strip()
@@ -217,9 +215,6 @@ def execute_subtasks(client: OpenAI, state: dict) -> dict:
 
         choice = response.choices[0]
         assistant_msg = choice.message
-
-        # if assistant_msg.content:
-            # logger.info("助手消息: %s", assistant_msg.content)
 
         if not assistant_msg.tool_calls:
             logger.info("模型未发起工具调用，执行结束")
@@ -271,7 +266,6 @@ def verify_task(client: OpenAI, state: dict) -> dict:
         model=MODEL_NAME,
         messages=[{"role": "user", "content": prompt}],
         temperature=0.1,
-        # 设置 reasoning_split=True 将思考内容分离到 reasoning_details 字段
         extra_body={"reasoning_split": True},
     )
     content = response.choices[0].message.content.strip()
