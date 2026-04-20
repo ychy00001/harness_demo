@@ -46,7 +46,7 @@ def chat(client: OpenAI, user_input: str) -> str:
 
 def main():
     logger.info("=" * 50)
-    logger.info("AI 助手1 启动")
+    logger.info("智能体1 启动")
     logger.info("=" * 50)
 
     client = create_client()

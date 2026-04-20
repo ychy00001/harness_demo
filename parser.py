@@ -40,7 +40,7 @@ if __name__ == "__main__":
     """
     
     emails = parser.extract_email(sample_text)
-    
+    print(f"功能描述:\n    该脚本用于从文本中提取.com域名的邮箱地址。\n")
     print(f"原始文本:\n{sample_text}")
     print("-" * 30)
     print(f"提取到的邮箱列表: {emails}")

@@ -288,7 +288,7 @@ def verify_task(client: OpenAI, state: dict) -> dict:
 
 def main():
     logger.info("=" * 60)
-    logger.info("AI 助手2 启动")
+    logger.info("智能体2 启动")
     logger.info("=" * 60)
 
     client = create_client()
