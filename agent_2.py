@@ -108,14 +108,56 @@ TOOLS = [
     },
 ]
 
-# 加载状态
+# 任务拆解
+def decompose_task(client: OpenAI, task: str) -> list[dict]:
+    logger.info("开始拆解任务: %s", task)
+    prompt = DECOMPOSE_PROMPT.format(task=task)
+    response = client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.3,
+        extra_body={"reasoning_split": True},
+    )
+    content = response.choices[0].message.content.strip()
+    logger.info("拆解原始响应: %s", content)
+
+    json_str = content
+    # 处理思考过程标签
+    if "</think>" in content:
+        json_str = content.split("</think>")[1].strip()
+    # 处理代码块
+    if "```json" in json_str:
+        json_str = json_str.split("```json")[1].split("```")[0].strip()
+    elif "```" in json_str:
+        json_str = json_str.split("```")[1].split("```")[0].strip()
+
+    subtasks = json.loads(json_str)
+    logger.info("任务拆解完成，共 %d 个子任务", len(subtasks))
+    for t in subtasks:
+        logger.info("  - #%d: %s [%s]", t["id"], t["description"], t.get("status", "pending"))
+    return subtasks
+
+# 更新任务状态
+def update_task_status(state: dict, task_id: int, status: str, result: str = "") -> str:
+    for task in state["tasks"]:
+        if task["id"] == task_id:
+            task["status"] = status
+            if result:
+                task["result"] = result
+            logger.info("子任务 #%d 状态更新: %s", task_id, status)
+            save_state(state)
+            return f"子任务 #{task_id} 状态已更新为 {status}"
+    logger.warning("未找到子任务 #%d", task_id)
+    return f"未找到子任务 #{task_id}"
+
+# 加载任务状态
 def load_state() -> dict:
     if STATE_FILE.exists():
         with open(STATE_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
     return {"tasks": [], "execution_log": [], "created_at": None, "original_task": ""}
 
-# 保存状态
+# 保存任务状态
 def save_state(state: dict):
     state["updated_at"] = datetime.now().isoformat()
     with open(STATE_FILE, "w", encoding="utf-8") as f:
@@ -146,48 +188,6 @@ def execute_bash(command: str) -> str:
     except Exception as e:
         logger.error("命令执行异常: %s", str(e))
         return f"错误: {str(e)}"
-
-# 更新任务状态
-def update_task_status(state: dict, task_id: int, status: str, result: str = "") -> str:
-    for task in state["tasks"]:
-        if task["id"] == task_id:
-            task["status"] = status
-            if result:
-                task["result"] = result
-            logger.info("子任务 #%d 状态更新: %s", task_id, status)
-            save_state(state)
-            return f"子任务 #{task_id} 状态已更新为 {status}"
-    logger.warning("未找到子任务 #%d", task_id)
-    return f"未找到子任务 #{task_id}"
-
-# 任务拆解
-def decompose_task(client: OpenAI, task: str) -> list[dict]:
-    logger.info("开始拆解任务: %s", task)
-    prompt = DECOMPOSE_PROMPT.format(task=task)
-    response = client.chat.completions.create(
-        model=MODEL_NAME,
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.3,
-        extra_body={"reasoning_split": True},
-    )
-    content = response.choices[0].message.content.strip()
-    logger.info("拆解原始响应: %s", content)
-
-    json_str = content
-    # 处理思考过程标签
-    if "</think>" in content:
-        json_str = content.split("</think>")[1].strip()
-    # 处理代码块
-    if "```json" in json_str:
-        json_str = json_str.split("```json")[1].split("```")[0].strip()
-    elif "```" in json_str:
-        json_str = json_str.split("```")[1].split("```")[0].strip()
-
-    subtasks = json.loads(json_str)
-    logger.info("任务拆解完成，共 %d 个子任务", len(subtasks))
-    for t in subtasks:
-        logger.info("  - #%d: %s [%s]", t["id"], t["description"], t.get("status", "pending"))
-    return subtasks
 
 # 执行子任务
 def execute_subtasks(client: OpenAI, state: dict) -> dict:
